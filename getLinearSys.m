@@ -1,6 +1,7 @@
-function [A,B,nominal_input] = getLinearSys(nominal_x)
+function [A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting)
 
-syms X Z u w Fx Fz
+syms Z u w Fu Fw
+syms t
 
 %%% parameters of the UUV
 m = 116.355; % mass of the UUV
@@ -14,58 +15,80 @@ dDetMB11_over_dZ = -67.55*Z^5 + 260.4*Z^4 - 405.3*Z^3 + 323.4*Z^2 -136*Z + 25.31
 dDetMB31_over_dZ = -0.7414*Z^6 + 3.317*Z^5 - 5.438*Z^4 + 4.937*Z^3 - 2.475*Z^2 + 0.6497*Z - 0.0703; 
 dDetMB13_over_dZ = 0.05967*Z^5 - 0.2144*Z^4 + 0.3022*Z^3 - 0.2087*Z^2 + 0.07117*Z - 0.01007;
 dDetMB33_over_dZ = -3157*Z^5 + 11770*Z^4 - 17430*Z^3 + 12920*Z^2 - 4853*Z + 757.1;
+% Calculate all the needed matrices to solve coupling udot and wdot
+A_coe = m+MB11_plus_DetMB11;
+B_coe = dDetMB11_over_dZ;
+C_coe = dDetMB13_over_dZ;
+D_coe = m+MB31_plus_DetMB31;
+E_coe = m+MB33_plue_DetMB33;
+F_coe = -0.5*dDetMB11_over_dZ;
+G_coe = 0.5*(dDetMB31_over_dZ-dDetMB13_over_dZ);
+H_coe = 0.5*dDetMB33_over_dZ;
+state_udotwdot = [A_coe 0; D_coe E_coe]\[Fu-B_coe*u*w-C_coe*w; Fw-F_coe*u^2-G_coe*u*w-H_coe*w^2];
 
+%%%%%%% independent motion
 % f1
 Xdot = u;
+%%%%%%% dependent motion
 % f2
 Zdot = w;
 % f3
-udot = (1/(m + MB11_plus_DetMB11))*(Fx - dDetMB11_over_dZ*u*w - dDetMB13_over_dZ*w^2);
+udot = state_udotwdot(1);
 % f4
-wdot = (1/(m + MB33_plue_DetMB33))*(Fz + 0.5*dDetMB11_over_dZ*u^2 - 0.5*(dDetMB31_over_dZ-dDetMB13_over_dZ)*u*w - 0.5*dDetMB33_over_dZ*w^2 - MB31_plus_DetMB31*udot);
+wdot = state_udotwdot(2);
 
-%%% Compute nominal input
-udot_sub = subs(udot, [X Z u w], nominal_x');
-wdot_sub = subs(wdot, [X Z u w], nominal_x');
-eqns = [udot_sub == 0, wdot_sub == 0];
-vars = [Fx Fz];
+%%%%%%% Compute nominal data
+% We have three system-dependent states, 5 variables to set to get the
+% equilibrim (or any other situation we want) motion, so we need to set 2
+% parameters to get the full rank system
+Xdot_sub = subs(Xdot, [Z u], [nominal_data_setting(1,1),nominal_data_setting(2,1)]);
+Zdot_sub = subs(Zdot, [Z u], [nominal_data_setting(1,1),nominal_data_setting(2,1)]);
+udot_sub = subs(udot, [Z u], [nominal_data_setting(1,1),nominal_data_setting(2,1)]);
+wdot_sub = subs(wdot, [Z u], [nominal_data_setting(1,1),nominal_data_setting(2,1)]);
+eqns = [Zdot_sub == 0, udot_sub == 0, wdot_sub == 0];
+vars = [w Fu Fw];
 sol = solve(eqns, vars);
-nominal_input = [sol.Fx; sol.Fz]; 
+nominal_input = [sol.Fu; sol.Fw];
+nominal_x = [nominal_x0(1,1)+Xdot_sub*t; nominal_data_setting(1,1); nominal_data_setting(2,1); sol.w];
+nominal_x_dependent = [nominal_data_setting(1,1); nominal_data_setting(2,1); sol.w];
 
+%%%%%%% derive A and B
 % f1
-df1dX = diff(Xdot,X);
+df1dX = 0;
 df1dZ = diff(Xdot,Z);
 df1du = diff(Xdot,u);
 df1dw = diff(Xdot,w);
-df1dFx = diff(Xdot,Fx);
-df1dFz = diff(Xdot,Fz);
+df1dFu = diff(Xdot,Fu);
+df1dFw = diff(Xdot,Fw);
 % f2
-df2dX = diff(Zdot,X);
+df2dX = 0;
 df2dZ = diff(Zdot,Z);
 df2du = diff(Zdot,u);
 df2dw = diff(Zdot,w);
-df2dFx = diff(Zdot,Fx);
-df2dFz = diff(Zdot,Fz);
+df2dFu = diff(Zdot,Fu);
+df2dFw = diff(Zdot,Fw);
 % f3
-df3dX = diff(udot,X);
+df3dX = 0;
 df3dZ = diff(udot,Z);
 df3du = diff(udot,u);
 df3dw = diff(udot,w);
-df3dFx = diff(udot,Fx);
-df3dFz = diff(udot,Fz);
+df3dFu = diff(udot,Fu);
+df3dFw = diff(udot,Fw);
 % f4
-df4dX = diff(wdot,X);
+df4dX = 0;
 df4dZ = diff(wdot,Z);
 df4du = diff(wdot,u);
 df4dw = diff(wdot,w);
-df4dFx = diff(wdot,Fx);
-df4dFz = diff(wdot,Fz);
+df4dFu = diff(wdot,Fu);
+df4dFw = diff(wdot,Fw);
 
-A = [subs(df1dX, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df1dZ, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df1du, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df1dw, [X Z u w Fx Fz], [nominal_x' nominal_input']);...
-     subs(df2dX, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df2dZ, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df2du, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df2dw, [X Z u w Fx Fz], [nominal_x' nominal_input']);...
-     subs(df3dX, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df3dZ, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df3du, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df3dw, [X Z u w Fx Fz], [nominal_x' nominal_input']);...
-     subs(df4dX, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df4dZ, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df4du, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df4dw, [X Z u w Fx Fz], [nominal_x' nominal_input'])];
-B = [subs(df1dFx, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df1dFz, [X Z u w Fx Fz], [nominal_x' nominal_input']);...
-     subs(df2dFx, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df2dFz, [X Z u w Fx Fz], [nominal_x' nominal_input']);...
-     subs(df3dFx, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df3dFz, [X Z u w Fx Fz], [nominal_x' nominal_input']);...
-     subs(df4dFx, [X Z u w Fx Fz], [nominal_x' nominal_input']) subs(df4dFz, [X Z u w Fx Fz], [nominal_x' nominal_input'])];
+A = [subs(df1dX, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df1dZ, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df1du, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df1dw, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']);...
+     subs(df2dX, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df2dZ, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df2du, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df2dw, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']);...
+     subs(df3dX, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df3dZ, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df3du, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df3dw, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']);...
+     subs(df4dX, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df4dZ, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df4du, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df4dw, [Z u w Fu Fw], [nominal_x_dependent' nominal_input'])];
+B = [subs(df1dFu, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df1dFw, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']);...
+     subs(df2dFu, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df2dFw, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']);...
+     subs(df3dFu, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df3dFw, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']);...
+     subs(df4dFu, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df4dFw, [Z u w Fu Fw], [nominal_x_dependent' nominal_input'])];
+ 
+A = double(A); B = double(B);

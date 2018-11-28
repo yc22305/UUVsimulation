@@ -1,54 +1,129 @@
 clear;
+cmap = colormap(hsv); close;
+cmap1 = colormap(spring); close;
+cmap2 = colormap(summer); close;
+cmap3 = colormap(winter); close;
+N_states = 4;
+N_inputs = 2;
 
-syms X Z u w Fx Fz
+%% Fixed u. Varying Z
+nominal_u = 2;
+N = 100;
+Zk_start = 0.5; Zk_final = 5;
+Zk = linspace(Zk_start,Zk_final,N);
 
-%%% parameters of the UUV
-m = 116.355; % mass of the UUV
-% Added mass. Submerged added mass and surfave perturbed added mass. These
-% formulas are got from previous experiments.
-MB11_plus_DetMB11 = 11.17*Z^5 - 41.93*Z^4 + 63.92*Z^3 -50.67*Z^2 + 21.85*Z + 0.8278;
-MB31_plus_DetMB31 = -0.2532*Z^7 + 1.159*Z^6 - 2.221*Z^5 + 2.307*Z^4 - 1.339*Z^3 + 0.4943*Z^2 - 0.09445*Z + 0.00741;
-MB33_plue_DetMB33 = 448.7*Z^5 - 1608*Z^4 + 2290*Z^3 -1636*Z^2 + 600.9*Z + 11.42;
-% Added mass gradient. Relative to damping matrix.
-dDetMB11_over_dZ = -67.55*Z^5 + 260.4*Z^4 - 405.3*Z^3 + 323.4*Z^2 -136*Z + 25.31;
-dDetMB31_over_dZ = -0.7414*Z^6 + 3.317*Z^5 - 5.438*Z^4 + 4.937*Z^3 - 2.475*Z^2 + 0.6497*Z - 0.0703; 
-dDetMB13_over_dZ = 0.05967*Z^5 - 0.2144*Z^4 + 0.3022*Z^3 - 0.2087*Z^2 + 0.07117*Z - 0.01007;
-dDetMB33_over_dZ = -3157*Z^5 + 11770*Z^4 - 17430*Z^3 + 12920*Z^2 - 4853*Z + 757.1;
+fhandle = figure;
+color_idx = 1;
+for i = 1:N
+    nominal_x0 = [0; Zk(i); nominal_u; 0]; % matters to X
+    nominal_data_setting = [Zk(i); nominal_u]; % Set Z, u.
+    [A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting);
+    r = eig(A(2:end,2:end));
+    
+    if (color_idx > size(cmap,1))
+        color_idx = 1;
+    end
+    plot3(real(r),imag(r),Zk(i)*ones(size(r,1),1),'Color',cmap(color_idx,:),'Marker','.','LineStyle','none'), hold on;
+    color_idx = color_idx+1;
+end
+view(0,90);
+title({'Poles of linearized open-loop system about the equilibrium state',['Varying Zk: ', num2str(Zk_start), ' to ', num2str(Zk_final)],['u = ', num2str(nominal_u)]});
+dcm_obj = datacursormode(fhandle);
+set(dcm_obj,'UpdateFcn',@myCursor);
 
-% f1
-Xdot = u;
-% f2
-Zdot = w;
-% f3
-udot = (1/(m + MB11_plus_DetMB11))*(Fx - dDetMB11_over_dZ*u*w - dDetMB13_over_dZ*w^2);
-% f4
-wdot = (1/(m + MB33_plue_DetMB33))*(Fz + 0.5*dDetMB11_over_dZ*u^2 - 0.5*(dDetMB31_over_dZ-dDetMB13_over_dZ)*u*w - 0.5*dDetMB33_over_dZ*w^2 - MB31_plus_DetMB31*udot);
+%% Fixed u. Varying Z. (see the change with three different u)
+nominal_u = [2 5 7];
+cmaps = {cmap1, cmap2, cmap3};
+N = 100;
+Zk_start = 0.5; Zk_final = 5;
+Zk = linspace(Zk_start,Zk_final,N);
 
-% f1
-df1dX = diff(Xdot,X);
-df1dZ = diff(Xdot,Z);
-df1du = diff(Xdot,u);
-df1dw = diff(Xdot,w);
-df1dFx = diff(Xdot,Fx);
-df1dFz = diff(Xdot,Fz);
-% f2
-df2dX = diff(Zdot,X);
-df2dZ = diff(Zdot,Z);
-df2du = diff(Zdot,u);
-df2dw = diff(Zdot,w);
-df2dFx = diff(Zdot,Fx);
-df2dFz = diff(Zdot,Fz);
-% f3
-df3dX = diff(udot,X);
-df3dZ = diff(udot,Z);
-df3du = diff(udot,u);
-df3dw = diff(udot,w);
-df3dFx = diff(udot,Fx);
-df3dFz = diff(udot,Fz);
-% f4
-df4dX = diff(wdot,X);
-df4dZ = diff(wdot,Z);
-df4du = diff(wdot,u);
-df4dw = diff(wdot,w);
-df4dFx = diff(wdot,Fx);
-df4dFz = diff(wdot,Fz);
+fhandle = figure;
+for j = 1:3
+    current_cmap = cmaps{j};
+    color_idx = 1;
+    for i = 1:N
+        nominal_x0 = [0; Zk(i); nominal_u(j); 0]; % matters to X
+        nominal_data_setting = [Zk(i); nominal_u(j)]; % Set Z, u.
+        [A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting);
+        r = eig(A(2:end,2:end));
+        
+        if (color_idx > size(current_cmap,1))
+            color_idx = 1;
+        end
+        plot3(real(r),imag(r),Zk(i)*ones(size(r,1),1),'Color',current_cmap(color_idx,:),'Marker','.','LineStyle','none'), hold on;
+        color_idx = color_idx+1;
+    end
+end
+view(0,90);
+title({'Poles of linearized open-loop system about the equilibrium state',['Varying Z: ', num2str(Zk_start), ' to ', num2str(Zk_final)]});
+dcm_obj = datacursormode(fhandle);
+set(dcm_obj,'UpdateFcn',@myCursor);
+
+%% Fixed Z. Varying u
+nominal_Z = 0.5;
+N = 100;
+uk_start = 1; uk_final = 10;
+uk = linspace(uk_start,uk_final,N);
+
+fhandle = figure;
+color_idx = 1;
+for i = 1:N
+    nominal_x0 = [0; nominal_Z; uk(i); 0]; % matters to X
+    nominal_data_setting = [nominal_Z; uk(i)]; % Set Z, u.
+    [A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting);
+    r = eig(A(2:end,2:end));
+    
+    if (color_idx > size(cmap,1))
+        color_idx = 1;
+    end
+    plot3(real(r),imag(r),uk(i)*ones(size(r,1),1),'Color',cmap(color_idx,:),'Marker','.','LineStyle','none'), hold on;
+    color_idx = color_idx+1;
+end
+view(0,90);
+title({'Poles of linearized open-loop system about the equilibrium state',['Varying u: ', num2str(uk_start), ' to ', num2str(uk_final)],['Z = ', num2str(nominal_Z)]});
+dcm_obj = datacursormode(fhandle);
+set(dcm_obj,'UpdateFcn',@myCursor);
+
+%% Fixed Z. Varying u. (see the change with three different Z)
+nominal_Z = [0.5 1 1.5];
+cmaps = {cmap1, cmap2, cmap3};
+N = 100;
+uk_start = 1; uk_final = 10;
+uk = linspace(uk_start,uk_final,N);
+
+fhandle = figure;
+for j = 1:3
+    current_cmap = cmaps{j};
+    color_idx = 1;
+    for i = 1:N
+        nominal_x0 = [0; nominal_Z(j); uk(i); 0]; % matters to X
+        nominal_data_setting = [nominal_Z(j); uk(i)]; % Set Z, u.
+        [A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting);
+        r = eig(A(2:end,2:end));
+        
+        if (color_idx > size(current_cmap,1))
+            color_idx = 1;
+        end
+        plot3(real(r),imag(r),uk(i)*ones(size(r,1),1),'Color',current_cmap(color_idx,:),'Marker','.','LineStyle','none'), hold on;
+        color_idx = color_idx+1;
+    end
+end
+view(0,90);
+title({'Poles of linearized open-loop system about the equilibrium state',['Varying u: ', num2str(uk_start), ' to ', num2str(uk_final)]});
+dcm_obj = datacursormode(fhandle);
+set(dcm_obj,'UpdateFcn',@myCursor);
+
+%% System controllability and initial consition analysis
+nominal_Z = 1.909; nominal_u = 2;
+nominal_x0 = [0; nominal_Z; nominal_u; 0]; % matters to X
+nominal_data_setting = [nominal_Z; nominal_u]; % Set Z, u.
+
+[A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting);
+[T,D] = eig(A(2:end,2:end));
+[T_tilde,D_tilde] = cdf2rdf(T,D);
+B_z = eye(N_states-1)/T_tilde*B(2:end,:); % check controllability
+
+%%%% see the result of T (T_tilde) and D (D_tilde) to analyze the trend of x(t)
+
+

@@ -1,13 +1,16 @@
-function dxdt = systemUUV(tt,x,nominal_x,nominal_input,feedbackGain)
+function dxdt = systemUUV(tt,x,nominal_x,nominal_input,KpGains,KdGains)
 
+global x_errLast ttLast FuLast FwLast
 syms t
 
 nominal_x = double(subs(nominal_x,t,tt));
 nominal_input = double(subs(nominal_input,t,tt));
 
-%%% parameters of the UUV
+%%% states of the UUV
 m = 116.355; % mass of the UUV
 Z = x(2,1);
+u = x(3,1);
+w = x(4,1);
 % Added mass. Submerged added mass and surfave perturbed added mass. These
 % formulas are got from previous experiments.
 MB11_plus_DetMB11 = 11.17*Z^5 - 41.93*Z^4 + 63.92*Z^3 -50.67*Z^2 + 21.85*Z + 0.8278;
@@ -20,15 +23,35 @@ dDetMB13_over_dZ = 0.05967*Z^5 - 0.2144*Z^4 + 0.3022*Z^3 - 0.2087*Z^2 + 0.07117*
 dDetMB33_over_dZ = -3157*Z^5 + 11770*Z^4 - 17430*Z^3 + 12920*Z^2 - 4853*Z + 757.1;
 
 % control forces
-Fx = nominal_input(1,1) - feedbackGain(1,:)*(x-nominal_x); % Consider the feedback errors contributed by all the components in xdir
-Fz = nominal_input(2,1) - feedbackGain(2,:)*(x-nominal_x); % Consider the feedback errors contributed by all the components in zdir
+x_err = nominal_x-x;
+dtt = tt-ttLast;
+if dtt>0
+    Fu = nominal_input(1,1) + (KpGains(1,:)*x_err + KdGains(1,:)*(x_err-x_errLast)/dtt); % Consider the feedback errors contributed by all the components in xdir
+    Fw = nominal_input(2,1) + (KpGains(2,:)*x_err + KdGains(2,:)*(x_err-x_errLast)/dtt); % Consider the feedback errors contributed by all the components in zdir
+    FuLast = Fu;
+    FwLast = Fw;
+    x_errLast = x_err;
+    ttLast = tt;
+else
+    Fu = FuLast;
+    Fw = FwLast;
+end
 
-u = x(3,1);
-w = x(4,1);
+% Calculate all the needed coefficients to solve coupling udot and wdot
+A_coe = m+MB11_plus_DetMB11;
+B_coe = dDetMB11_over_dZ;
+C_coe = dDetMB13_over_dZ;
+D_coe = m+MB31_plus_DetMB31;
+E_coe = m+MB33_plue_DetMB33;
+F_coe = -0.5*dDetMB11_over_dZ;
+G_coe = 0.5*(dDetMB31_over_dZ-dDetMB13_over_dZ);
+H_coe = 0.5*dDetMB33_over_dZ;
+state_udotwdot = [A_coe 0; D_coe E_coe]\[Fu-B_coe*u*w-C_coe*w; Fw-F_coe*u^2-G_coe*u*w-H_coe*w^2];
+
 Xdot = u;
 Zdot = w;
-udot = (1/(m + MB11_plus_DetMB11))*(Fx - dDetMB11_over_dZ*u*w - dDetMB13_over_dZ*w^2);
-wdot = (1/(m + MB33_plue_DetMB33))*(Fz + 0.5*dDetMB11_over_dZ*u^2 - 0.5*(dDetMB31_over_dZ-dDetMB13_over_dZ)*u*w - 0.5*dDetMB33_over_dZ*w^2 - MB31_plus_DetMB31*udot);
+udot = state_udotwdot(1);
+wdot = state_udotwdot(2);
 
 dxdt = [Xdot; Zdot; udot; wdot];
 

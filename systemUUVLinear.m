@@ -1,8 +1,3 @@
-function dDetxdt = systemUUVLinear(tt,Detx,A,B,feedbackGain)
+function dDetxdt = systemUUVLinear(tt,Detx,A,B,KpGains)
 
-syms t
-
-A = double(subs(A,t,tt));
-B = double(subs(B,t,tt));
-
-dDetxdt = (A-B*feedbackGain)*Detx;
+dDetxdt = (A-B*KpGains)*Detx;
