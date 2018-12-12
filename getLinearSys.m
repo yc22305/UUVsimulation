@@ -24,7 +24,7 @@ E_coe = m+MB33_plue_DetMB33;
 F_coe = -0.5*dDetMB11_over_dZ;
 G_coe = 0.5*(dDetMB31_over_dZ-dDetMB13_over_dZ);
 H_coe = 0.5*dDetMB33_over_dZ;
-state_udotwdot = [A_coe 0; D_coe E_coe]\[Fu-B_coe*u*w-C_coe*w; Fw-F_coe*u^2-G_coe*u*w-H_coe*w^2];
+state_udotwdot = [A_coe 0; D_coe E_coe]\[Fu-B_coe*u*w-C_coe*w; Fw-F_coe*u^2-G_coe*u*w-H_coe*w^2]; % need to add code to prevent sigular [A_coe 0; D_coe E_coe]
 
 %%%%%%% independent motion
 % f1

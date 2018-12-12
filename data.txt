@@ -1,0 +1,12 @@
+nominal_input =
+ 
+         0
+ -5317/256
+ 
+>> nominal_x
+ 
+nominal_x =
+ 
+ 1/2
+   5
+   0

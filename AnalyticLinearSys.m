@@ -115,7 +115,7 @@ dcm_obj = datacursormode(fhandle);
 set(dcm_obj,'UpdateFcn',@myCursor);
 
 %% System controllability and initial consition analysis
-nominal_Z = 1.909; nominal_u = 2;
+nominal_Z = 0.5; nominal_u = 2;
 nominal_x0 = [0; nominal_Z; nominal_u; 0]; % matters to X
 nominal_data_setting = [nominal_Z; nominal_u]; % Set Z, u.
 
