@@ -1,6 +1,5 @@
-function dxdt = systemUUV(tt,x,nominal_x,nominal_input,KpGains,KdGains)
+function dxdt = systemUUV(tt,x,nominal_x,nominal_input,KGains)
 
-global udott wdott
 syms t
 
 nominal_x = double(subs(nominal_x,t,tt));
@@ -23,11 +22,10 @@ dDetMB13_over_dZ = 0.05967*Z^5 - 0.2144*Z^4 + 0.3022*Z^3 - 0.2087*Z^2 + 0.07117*
 dDetMB33_over_dZ = -3157*Z^5 + 11770*Z^4 - 17430*Z^3 + 12920*Z^2 - 4853*Z + 757.1;
 
 % control forces
-x_err = nominal_x-x;
-x_errdot = [nominal_x(3,1)-u; nominal_x(4,1)-w; 0-udott; 0-wdott];
+err = nominal_x-x;
 
-Fu = nominal_input(1,1) + (KpGains(1,:)*x_err + KdGains(1,:)*x_errdot); % Consider the feedback errors contributed by all the components in xdir
-Fw = nominal_input(2,1) + (KpGains(2,:)*x_err + KdGains(2,:)*x_errdot); % Consider the feedback errors contributed by all the components in zdir
+Fu = nominal_input(1,1) + KGains(1,:)*err; % Consider the feedback errors contributed by all the components in xdir
+Fw = nominal_input(2,1) + KGains(2,:)*err; % Consider the feedback errors contributed by all the components in zdir
 
 % Calculate all the needed coefficients to solve coupling udot and wdot
 A_coe = m+MB11_plus_DetMB11;
@@ -43,9 +41,7 @@ state_udotwdot = [A_coe 0; D_coe E_coe]\[Fu-B_coe*u*w-C_coe*w; Fw-F_coe*u^2-G_co
 Xdot = u;
 Zdot = w;
 udot = state_udotwdot(1);
-udott = udot;
 wdot = state_udotwdot(2);
-wdott = wdot;
 
 dxdt = [Xdot; Zdot; udot; wdot];
 
