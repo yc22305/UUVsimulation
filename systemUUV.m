@@ -23,7 +23,6 @@ dDetMB33_over_dZ = -3157*Z^5 + 11770*Z^4 - 17430*Z^3 + 12920*Z^2 - 4853*Z + 757.
 
 % control forces
 err = nominal_x-x;
-
 Fu = nominal_input(1,1) + KGains(1,:)*err; % Consider the feedback errors contributed by all the components in xdir
 Fw = nominal_input(2,1) + KGains(2,:)*err; % Consider the feedback errors contributed by all the components in zdir
 

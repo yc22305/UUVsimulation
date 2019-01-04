@@ -5,14 +5,6 @@ cmap2 = colormap(summer); close;
 cmap3 = colormap(winter); close;
 N_states = 4;
 N_inputs = 2;
-%% See the eigenvalues
-clear;
-nominal_Z_setting = 0.5;
-nominal_u_setting = 2;
-nominal_x0 = [0; nominal_Z_setting; nominal_u_setting; 0]; % nominal initial state: X, Z, u, w
-nominal_data_setting = [nominal_Z_setting; nominal_u_setting]; % Set Z, u.
-[A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting);
-lambda = eig(A)
 
 %% Fixed u. Varying Z
 nominal_u = 2;
@@ -125,7 +117,7 @@ set(dcm_obj,'UpdateFcn',@myCursor);
 %% PID controller design (Classical controller design--focus on SISO)
 clear; clc;
 N_states = 4;
-N_inputs = 2;
+
 % A classical control law suggests that by observing a transfer function,
 % one could tune parameters to adjust the performance of a system. 
 % However, some systems are sufficiently complicated that the classical
@@ -237,48 +229,40 @@ G22b = [c*i 0];
 %     [rG22,pG22,kG22] = residue(G22b_subs,a_subs);
 % 
 %     figure(5), % weight
-%     h51 = plot(nominal_u_setting(idx),2*abs(rG11(imag(rG11)~=0)),'b.'); hold on,
-%     h52 = plot(nominal_u_setting(idx),rG11(imag(rG11)==0),'r.'); hold on,
+%     h61 = plot(nominal_u_setting(idx),2*abs(rG11(imag(rG11)~=0)),'b.'); hold on,
+%     h62 = plot(nominal_u_setting(idx),rG11(imag(rG11)==0),'r.'); hold on,
 %     figure(6),
-%     h61 = plot(nominal_u_setting(idx),2*abs(rG12(imag(rG12)~=0)),'b.'); hold on,
-%     h62 = plot(nominal_u_setting(idx),rG12(imag(rG12)==0),'r.'); hold on,
+%     h71 = plot(nominal_u_setting(idx),2*abs(rG12(imag(rG12)~=0)),'b.'); hold on,
+%     h72 = plot(nominal_u_setting(idx),rG12(imag(rG12)==0),'r.'); hold on,
 %     figure(7),
-%     h71 = plot(nominal_u_setting(idx),2*abs(rG21(imag(rG21)~=0)),'b.'); hold on,
-%     h72 = plot(nominal_u_setting(idx),rG21(imag(rG21)==0),'r.'); hold on,
+%     h81 = plot(nominal_u_setting(idx),2*abs(rG21(imag(rG21)~=0)),'b.'); hold on,
+%     h82 = plot(nominal_u_setting(idx),rG21(imag(rG21)==0),'r.'); hold on,
 %     figure(8),
-%     h81 = plot(nominal_u_setting(idx),2*abs(rG22(imag(rG22)~=0)),'b.'); hold on,
-%     h82 = plot(nominal_u_setting(idx),rG22(imag(rG22)==0),'r.'); hold on,
+%     h91 = plot(nominal_u_setting(idx),2*abs(rG22(imag(rG22)~=0)),'b.'); hold on,
+%     h92 = plot(nominal_u_setting(idx),rG22(imag(rG22)==0),'r.'); hold on,
 % end
-% figure(5), title('G11 Weight'), ylabel('Weight'), xlabel('u'), legend([h51(1) h52(1)],'second-order term','first-order term');
-% figure(6), title('G12 Weight'), ylabel('Weight'), xlabel('u'), legend([h61(1) h62(1)],'second-order term','first-order term');
-% figure(7), title('G21 Weight'), ylabel('Weight'), xlabel('u'), legend([h71(1) h72(1)],'second-order term','first-order term');
-% figure(8), title('G22 Weight'), ylabel('Weight'), xlabel('u'), legend([h81(1) h82(1)],'second-order term','first-order term');
+% figure(5), title('G11 Weight'), ylabel('Weight'), xlabel('u'), legend([h61(1) h62(1)],'second-order term','first-order term');
+% figure(6), title('G12 Weight'), ylabel('Weight'), xlabel('u'), legend([h71(1) h72(1)],'second-order term','first-order term');
+% figure(7), title('G21 Weight'), ylabel('Weight'), xlabel('u'), legend([h81(1) h82(1)],'second-order term','first-order term');
+% figure(8), title('G22 Weight'), ylabel('Weight'), xlabel('u'), legend([h91(1) h92(1)],'second-order term','first-order term');
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%% Specific nominal states %%%%%%%%%
 % From the plot of modes' weight, valid nominal states are chosen to design
 % the controller.
-nominal_Z_setting = 2.5;
-nominal_u_setting = 2;
-nominal_x0 = [0; nominal_Z_setting; nominal_u_setting; 0]; % nominal initial state: X, Z, u, w
-nominal_data_setting = [nominal_Z_setting; nominal_u_setting]; % Set Z, u.
+nominal_data_setting = [3; 2]; % Set Z, u.
+nominal_x0 = [0; nominal_data_setting(1); nominal_data_setting(2); 0]; % nominal initial state: X, Z, u, w
 [A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting);
 
 a_subs = double(subs(a,[Z u Fw], [nominal_x(2) nominal_x(3) nominal_input(2)]));
+G11b_subs = double(subs(G11b,[Z u Fw], [nominal_x(2) nominal_x(3) nominal_input(2)]));
 G12b_subs = double(subs(G12b,[Z u Fw], [nominal_x(2) nominal_x(3) nominal_input(2)]));
 G21b_subs = double(subs(G21b,[Z u Fw], [nominal_x(2) nominal_x(3) nominal_input(2)]));
-
+G22b_subs = double(subs(G22b,[Z u Fw], [nominal_x(2) nominal_x(3) nominal_input(2)]));
+[rG11,pG11,kG11] = residue(G11b_subs,a_subs)
 [rG12,pG12,kG12] = residue(G12b_subs,a_subs)
 [rG21,pG21,kG21] = residue(G21b_subs,a_subs)
-
-G12conjidx = zeros(1,N_states-1); 
-G21conjidx = zeros(1,N_states-1);
-for idx = 1:N_states-1 
-    G12conjidx(idx) = find(pG12==conj(pG12(idx)));
-end
-for idx = 1:N_states-1 
-    G21conjidx(idx) = find(pG21==conj(pG21(idx)));
-end
+[rG22,pG22,kG22] = residue(G22b_subs,a_subs)
 
 %%%%%%%%% Proportional gain (P) design applied to the surge force%%%%%%%%%
 % This design aims to set satisfactory convergence time for the surge speed,
@@ -286,9 +270,9 @@ end
 % Only P controller is needed because G21 can be regarded as first-order
 % Note that the surge force will also influence other states becasue of
 % the existence of coupling transfer functions
-G21timeConst = 10;
+G21timeConst = 5;
 for idx = 1:N_states-1 % Find all the first-order term with a real eigenvalue to calculate all the possible candidate Kp 
-    conjidx = G21conjidx(idx);
+    conjidx = find(pG21==conj(pG21(idx)));
     if conjidx == idx
         Kpu = (1/G21timeConst-(-pG21(idx)))/rG21(idx);
         break;
@@ -300,18 +284,20 @@ G21fbsys = feedback(Kpu*tf(G21b_subs,a_subs),1);
 %%%%%%%%% Proportional derivative gains (PD) design applied to the surge force %%%%%%%%%
 % This design aims to set satisfactory convergence time for the depth,
 % which is mainly controlled by the heave force.
-% PD controller is needed because G12 can be regarded as second-order
+% PD controller is needed because G12 is second-order, which requires 2
+% parameters to give total authorization
 % Note that the heave force will also influence other states becasue of
 % the existence of coupling transfer functions
-G12dampingRatio = sin(30/180*pi);
-G12sigma = 0.45; % to calculate the natural frequency
+G12dampingRatio = sin(40/180*pi);
+G12sigma = 0.5; % to calculate the natural frequency
 G12naturalFrequency = G12sigma/G12dampingRatio;
 syms Kpww Kdww
 for idx = 1:N_states-1
-    conjidx = G12conjidx(idx);
+    conjidx = find(pG21==conj(pG12(idx)));
     if conjidx ~= idx
-        eqns = [((-pG12(idx))*(-pG12(conjidx))+Kpww*(rG12(idx)*(-pG12(conjidx))+rG12(conjidx)*(-pG12(idx))))/(1+Kdww*(rG12(idx)+rG12(conjidx))) == G12naturalFrequency^2, ...
-                (-pG12(idx)-pG12(conjidx)+Kpww*(rG12(idx)+rG12(conjidx))+Kdww*(rG12(idx)*(-pG12(conjidx))+rG12(conjidx)*(-pG12(idx))))/(1+Kdww*(rG12(idx)+rG12(conjidx)))/2 == G12sigma];
+        G12_sin_residue = 2*abs(imag(rG12(idx)))*abs(imag(pG12(idx))) ; % the residue of the zero-order part
+        eqns = [(-pG12(idx))*(-pG12(conjidx))+Kpww*G12_sin_residue == G12naturalFrequency^2, ...
+                (-pG12(idx))+(-pG12(conjidx))+Kdww*G12_sin_residue == 2*G12sigma];
         gains = solve(eqns,[Kpww Kdww]);
         Kpw = double(gains.Kpww);
         Kdw = double(gains.Kdww);
@@ -323,14 +309,9 @@ G12fbsys = feedback((Kpw+Kdw*tf('s'))*tf(G12b_subs,a_subs),1);
 [rG12fb,pG12fb,kG12fb] = residue(G12fb_b,G12fb_a)
 
 % control gain matrix
-K = [0 Kpu 0; Kpw 0 Kdw];
-% Check stability
-lambda = eig(A(2:end,2:end)-B(2:end,:)*K);
+K = [0 Kpu 0; Kpw 0 Kdw]
+% Check eigenvalues
+lambda_nu = eig(A(2:end,2:end)-B(2:end,:)*K)
 
-%%%%%%%%% step response of the transfer function of interest %%%%%%%%%
-figure,
-step(G21fbsys,300);
-figure
-step(G12fbsys,300);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 

@@ -55,32 +55,32 @@ nominal_x_dependent = [nominal_data_setting(1,1); nominal_data_setting(2,1); sol
 %%%%%%% derive A and B
 % f1
 df1dX = 0;
-df1dZ = diff(Xdot,Z);
-df1du = diff(Xdot,u);
-df1dw = diff(Xdot,w);
-df1dFu = diff(Xdot,Fu);
-df1dFw = diff(Xdot,Fw);
+df1dZ = 0;
+df1du = 1;
+df1dw = 0;
+df1dFu = 0;
+df1dFw = 0;
 % f2
 df2dX = 0;
-df2dZ = diff(Zdot,Z);
-df2du = diff(Zdot,u);
-df2dw = diff(Zdot,w);
-df2dFu = diff(Zdot,Fu);
-df2dFw = diff(Zdot,Fw);
+df2dZ = 0;
+df2du = 0;
+df2dw = 1;
+df2dFu = 0;
+df2dFw = 0;
 % f3
 df3dX = 0;
-df3dZ = diff(udot,Z);
-df3du = diff(udot,u);
-df3dw = diff(udot,w);
-df3dFu = diff(udot,Fu);
-df3dFw = diff(udot,Fw);
+df3dZ = 0;
+df3du = 0;
+df3dw = -B_coe/A_coe*u;
+df3dFu = 1/A_coe;
+df3dFw = 0;
 % f4
 df4dX = 0;
-df4dZ = diff(wdot,Z);
-df4du = diff(wdot,u);
-df4dw = diff(wdot,w);
-df4dFu = diff(wdot,Fu);
-df4dFw = diff(wdot,Fw);
+df4dZ = -E_coe^(-2)*diff(E_coe,Z)*(Fw-F_coe*u^2)-1/E_coe*diff(F_coe,Z)*u^2;
+df4du = -F_coe/E_coe*2*u;
+df4dw = u/E_coe*(D_coe*B_coe/A_coe-G_coe);
+df4dFu = -D_coe/(A_coe*E_coe);
+df4dFw = 1/E_coe;
 
 A = [subs(df1dX, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df1dZ, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df1du, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df1dw, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']);...
      subs(df2dX, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df2dZ, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df2du, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']), subs(df2dw, [Z u w Fu Fw], [nominal_x_dependent' nominal_input']);...

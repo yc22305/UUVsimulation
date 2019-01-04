@@ -1,7 +1,7 @@
 clear;
 N_states = 4;
 N_inputs = 2;
-tspan = (0:0.5:300)'; % ode time span
+tspan = (0:0.1:100)'; % ode time span
 syms t
 
 %%%%%%% nominal data setting (usually equilibrium) to get the linearized system
@@ -10,28 +10,30 @@ syms t
 % We have 3 system-dependent states, and 5 variables to set to get the
 % desired motion. Therefore we need to set 2 parameters to get the rest of
 % the steady motion states and inputs
-nominal_Z_setting = 0.5;
-nominal_u_setting = 2;
-nominal_x0 = [0; nominal_Z_setting; nominal_u_setting; 0]; % nominal initial state: X, Z, u, w
-nominal_data_setting = [nominal_Z_setting; nominal_u_setting]; % Set Z, u. 
+nominal_data_setting = [3; 2]; % Set Z, u.
+nominal_x0 = [0; nominal_data_setting(1); nominal_data_setting(2); 0]; % nominal initial state: X, Z, u, w
 [A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting);
 
 %%%%%%% Gains and initial states
-DevPercentage = 1;
-%x0 = nominal_x0*(1+0.01*DevPercentage); % initial state: X, Z, u, w
-x0 = [0; 0.6; 2; 0]; % initial state: X, Z, u, w
+DevPercentage = 10;
+x0 = nominal_x0*(1+0.01*DevPercentage); % initial state: X, Z, u, w
+%x0 = [0; nominal_data_setting(1)*1.1; nominal_data_setting(2); 0]; % initial state: X, Z, u, w
 % Control gains
-% feedback error
-K_udir = [0 0 12.1896 0];
-K_wdir = [0 162.3276 0 200.2832];
-KGains = [K_udir; K_wdir];
+Ku = getPID(1,nominal_x,nominal_input);
+Kw = getPID(2,nominal_x,nominal_input);
+KGains = [0 0 Ku(1) 0; 0 Kw(1) 0 Kw(3)];
 
 %%%%%% solve ode of nonlinear system
 UUVode = @(tt,x) systemUUV(tt,x,nominal_x,nominal_input,KGains);
 [thist,xhist] = ode45(UUVode,tspan,x0);
 %%%%%% solve ode of linearized system
+Detx0 = x0-nominal_x0;
 UUVode_Linear = @(tt,Detx) systemUUVLinear(tt,Detx,A,B,KGains);
-[thist_LinearDet,xhist_LinearDet] = ode45(UUVode_Linear,tspan,x0-nominal_x0);
+[thist_LinearDet,xhist_LinearDet] = ode45(UUVode_Linear,tspan,Detx0);
+
+% force record. 1st row: Fu / 2nd row: Fw
+% forceNonlinear = repmat(nominal_input,1,length(tspan)) + KGains*(repmat(nominal_x,1,length(tspan))-xhist');
+forceLinear = repmat(nominal_input,1,length(tspan)) + KGains*(0-xhist_LinearDet');
 
 
 %%%%%% ode45 for nonlinear system with openloop control
@@ -45,25 +47,36 @@ UUVode_Linear = @(tt,Detx) systemUUVLinear(tt,Detx,A,B,KGains);
 
 %%%%%% show the nominal trajectory %%%%%
 nominal_x_shown = zeros(length(tspan),4);
-nominal_x_shown(:,1) = double(subs(nominal_x(1,1),t,tspan)); % Independ
+nominal_x_shown(:,1) = double(subs(nominal_x(1,1),t,tspan));
 nominal_x_shown(:,2) = double(nominal_x(2,1));
 nominal_x_shown(:,3) = double(nominal_x(3,1));
 nominal_x_shown(:,4) = double(nominal_x(4,1));
 
-figure, 
-subplot(3,1,1), 
-plot(thist, xhist(:,2), '-o', thist, nominal_x_shown(:,2), 'r'); hold on;
+figure, % response 
+subplot(2,1,1), 
+plot(thist_LinearDet, nominal_x_shown(:,2), 'r'); hold on;
+%plot(thist, xhist(:,2), '-o'); hold on;
 plot(thist_LinearDet, xhist_LinearDet(:,2)+nominal_x(2,1), 'g', 'LineWidth', 2); ylabel('Z(m)'), xlabel('time(s)'),
-title({'Model simulation',['Devx0: ',num2str(DevPercentage),'(percent) / Desired Z: ',num2str(double(nominal_x(2,1))),'(m) / Desired u: ',num2str(double(nominal_x(3,1))),'(m/s)'], ...
+title({'Model response',['Devx0: ',num2str(DevPercentage),'(percent) / Desired Z: ',num2str(double(nominal_x(2,1))),'(m) / Desired u: ',num2str(double(nominal_x(3,1))),'(m/s)'], ...
       ['K: ', num2str(KGains(1,:)), ' / ', num2str(KGains(2,:))]});
-legend('nonlinear', 'nominal trajectory', 'linear')
-subplot(3,1,2),
-plot(thist, xhist(:,3), '-o', thist, nominal_x_shown(:,3), 'r'); hold on;
+%legend('nominal trajectory', 'nonlinear', 'linear');
+subplot(2,1,2),
+plot(thist_LinearDet, nominal_x_shown(:,3), 'r'); hold on;
+%plot(thist, xhist(:,3), '-o'); hold on;
 plot(thist_LinearDet, xhist_LinearDet(:,3)+nominal_x(3,1), 'g', 'LineWidth', 2); ylabel('u(m/s)'), xlabel('time(s)');
-subplot(3,1,3),
-plot(thist, xhist(:,4), '-o', thist, nominal_x_shown(:,4), 'r'); hold on;
-plot(thist_LinearDet, xhist_LinearDet(:,4)+nominal_x(4,1), 'g', 'LineWidth', 2); ylabel('w(m/s)'), xlabel('time(s)');
-
+% subplot(3,1,3),
+% plot(thist_LinearDet, nominal_x_shown(:,4), 'r'); hold on;
+% %plot(thist, xhist(:,4)); hold on;
+% plot(thist_LinearDet, xhist_LinearDet(:,4)+nominal_x(4,1), 'g', 'LineWidth', 2); ylabel('w(m/s)'), xlabel('time(s)');
+figure, % force
+subplot(2,1,1),
+%plot(thist, forceNonlinear(1,:), '-o'); hold on;
+plot(thist_LinearDet, forceLinear(1,:), 'g', 'LineWidth', 2); ylabel('Fu'), xlabel('time(s)');
+title('Force (input)'); 
+%legend('nonlinear', 'linear');
+subplot(2,1,2),
+%plot(thist, forceNonlinear(2,:), '-o'); hold on;
+plot(thist_LinearDet, forceLinear(2,:), 'g', 'LineWidth', 2); ylabel('Fw'), xlabel('time(s)');
 
 % figure, 
 % subplot(3,1,1),
