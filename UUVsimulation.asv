@@ -1,7 +1,7 @@
 clear;
 N_states = 4;
 N_inputs = 2;
-tspan = (0:0.1:100)'; % ode time span
+tspan = (0:0.1:50)'; % ode time span
 syms t
 
 %%%%%%% nominal data setting (usually equilibrium) to get the linearized system
@@ -10,30 +10,30 @@ syms t
 % We have 3 system-dependent states, and 5 variables to set to get the
 % desired motion. Therefore we need to set 2 parameters to get the rest of
 % the steady motion states and inputs
-nominal_data_setting = [0.5; 2]; % Set Z, u.
+nominal_data_setting = [2; 5]; % Set Z, u.
 nominal_x0 = [0; nominal_data_setting(1); nominal_data_setting(2); 0]; % nominal initial state: X, Z, u, w
 [A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting);
 
 %%%%%%% initial states
-DevPercentage = 1;
+DevPercentage = 10;
 x0 = nominal_x0*(1+0.01*DevPercentage); % initial state: X, Z, u, w
 %x0 = [0; nominal_data_setting(1)*1.1; nominal_data_setting(2); 0]; % initial state: X, Z, u, w
 
 %%%%%%% Control gains
-%%%%% PID got from transfer fucntions
-Ku = getPID(1,nominal_x,nominal_input);
-Kw = getPID(2,nominal_x,nominal_input);
-KGains = [0 0 Ku(1) 0; 0 Kw(1) 0 Kw(3)];
-% solve ode of nonlinear system
-UUVode = @(tt,x) systemUUV(tt,x,nominal_x,nominal_input,KGains);
-[thist,xhist] = ode45(UUVode,tspan,x0);
-% solve ode of linearized system
-Detx0 = x0-nominal_x0;
-UUVode_Linear = @(tt,Detx) systemUUVLinear(tt,Detx,A,B,KGains);
-[thist_LinearDet,xhist_LinearDet] = ode45(UUVode_Linear,tspan,Detx0);
-% force record. 1st row: Fu / 2nd row: Fw
-% forceNonlinear = repmat(nominal_input,1,length(tspan)) + KGains*(repmat(nominal_x,1,length(tspan))-xhist');
-forceLinear = repmat(nominal_input,1,length(tspan)) + KGains*(0-xhist_LinearDet');
+% %%%%% PID got from transfer fucntions
+% Ku = getPID(1,nominal_x,nominal_input);
+% Kw = getPID(2,nominal_x,nominal_input);
+% KGains = [0 0 Ku(1) 0; 0 Kw(1) 0 Kw(3)]
+% % solve ode of nonlinear system
+% UUVode = @(tt,x) systemUUV(tt,x,nominal_x,nominal_input,KGains);
+% [thist,xhist] = ode45(UUVode,tspan,x0);
+% % solve ode of linearized system
+% Detx0 = x0-nominal_x0;
+% UUVode_Linear = @(tt,Detx) systemUUVLinear(tt,Detx,A,B,KGains);
+% [thist_LinearDet,xhist_LinearDet] = ode45(UUVode_Linear,tspan,Detx0);
+% % % force record. 1st row: Fu / 2nd row: Fw
+% % %forceNonlinear = repmat(nominal_input,1,length(tspan)) + KGains*(repmat(nominal_x,1,length(tspan))-xhist');
+% % forceLinear = repmat(nominal_input,1,length(tspan)) + KGains*(0-xhist_LinearDet');
 %%%%% pole placement
 dampingRatio = sin(40/180*pi);
 sigma = 0.5; 
@@ -51,8 +51,30 @@ Detx0 = x0-nominal_x0;
 UUVode_Linear = @(tt,Detx) systemUUVLinear(tt,Detx,A,B,KGains);
 [thist_LinearDet2,xhist_LinearDet2] = ode45(UUVode_Linear,tspan,Detx0);
 % force record. 1st row: Fu / 2nd row: Fw
-forceNonlinear2 = repmat(nominal_input,1,length(tspan)) + KGains*(repmat(nominal_x,1,length(tspan))-xhist');
+forceNonlinear2 = repmat(nominal_input,1,length(tspan)) + KGains*(repmat(nominal_x,1,length(tspan))-xhist2');
 forceLinear2 = repmat(nominal_input,1,length(tspan)) + KGains*(0-xhist_LinearDet2');
+
+%%%%% LQR
+% values used to non-dimensionalize Q, R and states and inputs, depending on the overshoot which is set to limited in 10%
+Zbound = abs(nominal_x(2)-x0(2))*1.1; 
+ubound = abs(nominal_x(2)-x0(2))*1.1;
+Q = eye(N_states-1)*10;
+Q(1,1) = Q(1,1)/Zbound^2; Q(3,3) = Q(3,3)/Zbound^2;
+Q(2,2) = Q(2,2)/ubound^2;
+R = eye(N_inputs);
+K = lqr(A(2:end,2:end),B(2:end,:),Q,R);
+KGains = [0 K(1,:), 0 K(2,:)]
+% solve ode of nonlinear system
+UUVode = @(tt,x) systemUUV(tt,x,nominal_x,nominal_input,KGains);
+[thist3,xhist3] = ode45(UUVode,tspan,x0);
+% solve ode of linearized system
+Detx0 = x0-nominal_x0;
+UUVode_Linear = @(tt,Detx) systemUUVLinear(tt,Detx,A,B,KGains);
+[thist_LinearDet3,xhist_LinearDet3] = ode45(UUVode_Linear,tspan,Detx0);
+% force record. 1st row: Fu / 2nd row: Fw
+forceNonlinear3 = repmat(nominal_input,1,length(tspan)) + KGains*(repmat(nominal_x,1,length(tspan))-xhist3');
+forceLinear3 = repmat(nominal_input,1,length(tspan)) + KGains*(0-xhist_LinearDet3');
+
 
 
 %%%%%% ode45 for nonlinear system with openloop control
@@ -83,10 +105,10 @@ nominal_x_shown(:,4) = double(nominal_x(4,1));
 % plot(thist_LinearDet, nominal_x_shown(:,3), 'r'); hold on;
 % %plot(thist, xhist(:,3), '-o'); hold on;
 % plot(thist_LinearDet, xhist_LinearDet(:,3)+nominal_x(3,1), 'g', 'LineWidth', 2); ylabel('u(m/s)'), xlabel('time(s)');
-% subplot(3,1,3),
-% plot(thist_LinearDet, nominal_x_shown(:,4), 'r'); hold on;
-% %plot(thist, xhist(:,4)); hold on;
-% plot(thist_LinearDet, xhist_LinearDet(:,4)+nominal_x(4,1), 'g', 'LineWidth', 2); ylabel('w(m/s)'), xlabel('time(s)');
+% % subplot(3,1,3),
+% % plot(thist_LinearDet, nominal_x_shown(:,4), 'r'); hold on;
+% % plot(thist, xhist(:,4)); hold on;
+% % plot(thist_LinearDet, xhist_LinearDet(:,4)+nominal_x(4,1), 'g', 'LineWidth', 2); ylabel('w(m/s)'), xlabel('time(s)');
 
 figure, % response (pole placement) 
 subplot(2,1,1), 
@@ -101,9 +123,26 @@ plot(thist_LinearDet2, nominal_x_shown(:,3), 'r'); hold on;
 plot(thist2, xhist2(:,3), '-o'); hold on;
 plot(thist_LinearDet2, xhist_LinearDet2(:,3)+nominal_x(3,1), 'g', 'LineWidth', 2); ylabel('u(m/s)'), xlabel('time(s)');
 % subplot(3,1,3),
-% plot(thist_LinearDet, nominal_x_shown(:,4), 'r'); hold on;
-% %plot(thist, xhist(:,4)); hold on;
-% plot(thist_LinearDet, xhist_LinearDet(:,4)+nominal_x(4,1), 'g', 'LineWidth', 2); ylabel('w(m/s)'), xlabel('time(s)');
+% plot(thist_LinearDet2, nominal_x_shown(:,4), 'r'); hold on;
+% plot(thist, xhist2(:,4)); hold on;
+% plot(thist_LinearDet2, xhist_LinearDet2(:,4)+nominal_x(4,1), 'g', 'LineWidth', 2); ylabel('w(m/s)'), xlabel('time(s)');
+
+figure, % response (LQR) 
+subplot(2,1,1), 
+plot(thist_LinearDet3, nominal_x_shown(:,2), 'r'); hold on;
+plot(thist3, xhist3(:,2), '-o'); hold on;
+plot(thist_LinearDet3, xhist_LinearDet3(:,2)+nominal_x(2,1), 'g', 'LineWidth', 2); ylabel('Z(m)'), xlabel('time(s)'),
+title({'Model response',['Devx0: ',num2str(DevPercentage),'(percent) / Desired Z: ',num2str(double(nominal_x(2,1))),'(m) / Desired u: ',num2str(double(nominal_x(3,1))),'(m/s)'], ...
+      ['K: ', num2str(KGains(1,:)), ' / ', num2str(KGains(2,:))]});
+legend('nominal trajectory', 'nonlinear', 'linear');
+subplot(2,1,2),
+plot(thist_LinearDet3, nominal_x_shown(:,3), 'r'); hold on;
+plot(thist2, xhist2(:,3), '-o'); hold on;
+plot(thist_LinearDet3, xhist_LinearDet3(:,3)+nominal_x(3,1), 'g', 'LineWidth', 2); ylabel('u(m/s)'), xlabel('time(s)');
+subplot(3,1,3),
+plot(thist_LinearDet3, nominal_x_shown(:,4), 'r'); hold on;
+plot(thist, xhist3(:,4)); hold on;
+plot(thist_LinearDet3, xhist_LinearDet3(:,4)+nominal_x(4,1), 'g', 'LineWidth', 2); ylabel('w(m/s)'), xlabel('time(s)');
 
 % figure, % compared response (pole placement vs PID design) 
 % subplot(2,1,1), 
@@ -111,7 +150,7 @@ plot(thist_LinearDet2, xhist_LinearDet2(:,3)+nominal_x(3,1), 'g', 'LineWidth', 2
 % plot(thist_LinearDet, xhist_LinearDet(:,2)+nominal_x(2,1), 'b', 'LineWidth', 2); ylabel('Z(m)'), xlabel('time(s)'); hold on;
 % plot(thist_LinearDet2, xhist_LinearDet2(:,2)+nominal_x(2,1), 'g', 'LineWidth', 2); ylabel('Z(m)'), xlabel('time(s)'),
 % title({'Model response',['Devx0: ',num2str(DevPercentage),'(percent) / Desired Z: ',num2str(double(nominal_x(2,1))),'(m) / Desired u: ',num2str(double(nominal_x(3,1))),'(m/s)']})
-% %legend('nominal trajectory', 'nonlinear', 'linear');
+% legend('nominal trajectory', 'classical design', 'modern design');
 % subplot(2,1,2),
 % plot(thist_LinearDet2, nominal_x_shown(:,3), 'r'); hold on;
 % plot(thist_LinearDet, xhist_LinearDet(:,3)+nominal_x(3,1), 'b', 'LineWidth', 2); ylabel('u(m)'), xlabel('time(s)'); hold on;
@@ -137,6 +176,8 @@ plot(thist_LinearDet2, xhist_LinearDet2(:,3)+nominal_x(3,1), 'g', 'LineWidth', 2
 % %plot(thist2, forceNonlinear2(2,:), '-o'); hold on;
 % plot(thist_LinearDet2, forceLinear2(2,:), 'g', 'LineWidth', 2); ylabel('Fw'), xlabel('time(s)');
 
+
+%%%%%%%%% unused %%%%%%%%%
 % figure, 
 % subplot(3,1,1),
 % plot(thist_LinearDet, xhist_LinearDet(:,2)); ylabel('Predicted Deviation Z(m)'), xlabel('time(s)');
