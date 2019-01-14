@@ -1,15 +1,13 @@
+%% Fixed u. Varying Z
 clear;
 cmap = colormap(hsv); close;
 cmap1 = colormap(spring); close;
 cmap2 = colormap(summer); close;
 cmap3 = colormap(winter); close;
-N_states = 4;
-N_inputs = 2;
 
-%% Fixed u. Varying Z
 nominal_u = 5;
 N = 100;
-Zk_start = 0.5; Zk_final = 5;
+Zk_start = 0.2; Zk_final = 1;
 Zk = linspace(Zk_start,Zk_final,N);
 
 fhandle = figure;
@@ -32,15 +30,21 @@ dcm_obj = datacursormode(fhandle);
 set(dcm_obj,'UpdateFcn',@myCursor);
 
 %% Fixed u. Varying Z. (see the change with three different u)
+clear;
+cmap = colormap(hsv); close;
+cmap1 = colormap(spring); close;
+cmap2 = colormap(summer); close;
+cmap3 = colormap(winter); close;
+
 nominal_u = [2 5 7];
 % cmaps = {cmap1, cmap2, cmap3};
 N = 100;
-Zk_start = 0.5; Zk_final = 5;
+Zk_start = 0.2; Zk_final = 1;
 Zk = linspace(Zk_start,Zk_final,N);
 p_real = zeros(3,N);
 p_imag = zeros(3,N);
 
-fhandle = figure;
+fhandle = figure(1);
 for j = 1:3
 %     current_cmap = cmaps{j};
 %     color_idx = 1;
@@ -57,11 +61,11 @@ for j = 1:3
 %         color_idx = color_idx+1;
         switch j
             case 1 
-                plot3(real(r),imag(r),Zk(i)*ones(size(r,1),1),'b','Marker','.','MarkerSize',8,'LineStyle','none'), hold on;
+                h1 = plot3(real(r),imag(r),Zk(i)*ones(size(r,1),1),'b','Marker','.','MarkerSize',8,'LineStyle','none'); hold on;
             case 2
-                plot3(real(r),imag(r),Zk(i)*ones(size(r,1),1),'r','Marker','.','MarkerSize',8,'LineStyle','none'), hold on;
+                h2 = plot3(real(r),imag(r),Zk(i)*ones(size(r,1),1),'r','Marker','.','MarkerSize',8,'LineStyle','none'); hold on;
             case 3 
-                plot3(real(r),imag(r),Zk(i)*ones(size(r,1),1),'g','Marker','.','MarkerSize',8,'LineStyle','none'), hold on;
+                h3 = plot3(real(r),imag(r),Zk(i)*ones(size(r,1),1),'g','Marker','.','MarkerSize',8,'LineStyle','none'); hold on;
         end
         conjidx = r(imag(r)~=0);
         p_real(j,i) = real(conjidx(1)); % pick one eigenvalue of the conjugate pair
@@ -72,6 +76,7 @@ view(0,90);
 title({'Poles of linearized open-loop system about the equilibrium state',['Varying Z: ', num2str(Zk_start), ' to ', num2str(Zk_final)]});
 dcm_obj = datacursormode(fhandle);
 set(dcm_obj,'UpdateFcn',@myCursor);
+figure(1), legend([h1(1), h2(1), h3(1)],['u = ',num2str(nominal_u(1))],['u = ',num2str(nominal_u(2))],['u = ',num2str(nominal_u(3))]);
 figure,
 plot(Zk,p_real(1,:),'LineWidth', 2); hold on,
 plot(Zk,p_real(2,:),'r','LineWidth', 2); hold on,
@@ -86,6 +91,12 @@ title('Imaginary part of the conjugate eigenvalues (fixed u)'), xlabel('depth (Z
 legend(['u = ',num2str(nominal_u(1))],['u = ',num2str(nominal_u(2))],['u = ',num2str(nominal_u(3))]);
 
 %% Fixed Z. Varying u
+clear;
+cmap = colormap(hsv); close;
+cmap1 = colormap(spring); close;
+cmap2 = colormap(summer); close;
+cmap3 = colormap(winter); close;
+
 nominal_Z = 0.5;
 N = 100;
 uk_start = 1; uk_final = 10;
@@ -111,14 +122,20 @@ dcm_obj = datacursormode(fhandle);
 set(dcm_obj,'UpdateFcn',@myCursor);
 
 %% Fixed Z. Varying u. (see the change with three different Z)
-nominal_Z = [0.5 1.5 2.5];
+clear;
+cmap = colormap(hsv);
+cmap1 = colormap(spring);
+cmap2 = colormap(summer);
+cmap3 = colormap(winter);
+
+nominal_Z = [0.2 0.6 1];
 % cmaps = {cmap1, cmap2, cmap3};
 N = 100;
 uk_start = 1; uk_final = 10;
 uk = linspace(uk_start,uk_final,N);
 p_real = zeros(3,N);
 
-fhandle = figure;
+fhandle = figure(1);
 for j = 1:3
 %     current_cmap = cmaps{j};
 %     color_idx = 1;
@@ -135,11 +152,11 @@ for j = 1:3
 %         color_idx = color_idx+1;
         switch j
             case 1 
-                plot3(real(r),imag(r),uk(i)*ones(size(r,1),1),'b','Marker','.','MarkerSize',8,'LineStyle','none'), hold on;
+                h1 = plot3(real(r),imag(r),uk(i)*ones(size(r,1),1),'b','Marker','.','MarkerSize',8,'LineStyle','none'); hold on;
             case 2
-                plot3(real(r),imag(r),uk(i)*ones(size(r,1),1),'r','Marker','.','MarkerSize',8,'LineStyle','none'), hold on;
+                h2 = plot3(real(r),imag(r),uk(i)*ones(size(r,1),1),'r','Marker','.','MarkerSize',8,'LineStyle','none'); hold on;
             case 3 
-                plot3(real(r),imag(r),uk(i)*ones(size(r,1),1),'g','Marker','.','MarkerSize',8,'LineStyle','none'), hold on;
+                h3 = plot3(real(r),imag(r),uk(i)*ones(size(r,1),1),'g','Marker','.','MarkerSize',8,'LineStyle','none'); hold on;
         end
         conjidx = r(imag(r)~=0);
         p_real(j,i) = real(conjidx(1)); % pick one eigenvalue of the conjugate pair
@@ -150,6 +167,7 @@ view(0,90);
 title({'Poles of linearized open-loop system about the equilibrium state',['Varying u: ', num2str(uk_start), ' to ', num2str(uk_final)]});
 dcm_obj = datacursormode(fhandle);
 set(dcm_obj,'UpdateFcn',@myCursor);
+figure(1), legend([h1(1) h2(1) h3(1)],['Z = ',num2str(nominal_Z(1))],['Z = ',num2str(nominal_Z(2))],['Z = ',num2str(nominal_Z(3))]);
 figure,
 plot(uk,p_real(1,:),'LineWidth', 2); hold on,
 plot(uk,p_real(2,:),'r','LineWidth', 2); hold on,
@@ -164,8 +182,9 @@ title('Imaginary part of the conjugate eigenvalues (fixed Z)'), xlabel('surge sp
 legend(['Z = ',num2str(nominal_Z(1))],['Z = ',num2str(nominal_Z(2))],['Z = ',num2str(nominal_Z(3))]);
 
 %% PID controller design (Classical controller design--focus on SISO)
-clear; clc;
+clear; 
 N_states = 4;
+N_inputs = 2;
 
 % A classical control law suggests that by observing a transfer function,
 % one could tune parameters to adjust the performance of a system. 
@@ -224,7 +243,7 @@ G22b = [c*i 0];
 % % Note that for our system, a pole is always zero (e.g. Type-1 system), independent of depth and surge speed; this implies that a integration controller is not necessary.
 % % Note that kG11,... are always empty because the system is physically realizable.
 % nominal_u_setting = 5;
-% nominal_Z_setting = 0.2:0.02:5;
+% nominal_Z_setting = 0.2:0.005:1;
 % N =length(nominal_Z_setting);
 % for idx = 1:N
 %     nominal_x0 = [0; nominal_Z_setting(idx); nominal_u_setting; 0]; % nominal initial state: X, Z, u, w
@@ -299,7 +318,7 @@ G22b = [c*i 0];
 %%%%%%%%% Specific nominal states %%%%%%%%%
 % From the plot of modes' weight, valid nominal states are chosen to design
 % the controller.
-nominal_data_setting = [0.5; 2]; % Set Z, u.
+nominal_data_setting = [1; 5]; % Set Z, u.
 nominal_x0 = [0; nominal_data_setting(1); nominal_data_setting(2); 0]; % nominal initial state: X, Z, u, w
 [A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting);
 
@@ -327,9 +346,14 @@ for idx = 1:N_states-1 % Find all the first-order term with a real eigenvalue to
         break;
     end
 end
-G21fbsys = feedback(Kpu*tf(G21b_subs,a_subs),1);
+G21fbsys = feedback(tf(G21b_subs,a_subs),Kpu);
 [G21fb_b,G21fb_a] = tfdata(G21fbsys,'v'); % To see the property of the SISO feedback system
 [rG21fb,pG21fb,kG21fb] = residue(G21fb_b,G21fb_a)
+% control gain matrix
+K = [0 Kpu 0; 0 0 0]
+% Check characteristics
+[Vu,lambdau] = eig(A(2:end,2:end)-B(2:end,:)*K)
+
 %%%%%%%%% Proportional derivative gains (PD) design applied to the surge force %%%%%%%%%
 % This design aims to set satisfactory convergence time for the depth,
 % which is mainly controlled by the heave force.
@@ -353,17 +377,25 @@ for idx = 1:N_states-1
         break;
     end
 end
-G12fbsys = feedback((Kpw+Kdw*tf('s'))*tf(G12b_subs,a_subs),1);
+G12fbsys = feedback(tf(G12b_subs,a_subs),Kpw+Kdw*tf('s'));
 [G12fb_b,G12fb_a] = tfdata(G12fbsys,'v'); % To see the property of the SISO feedback system
 [rG12fb,pG12fb,kG12fb] = residue(G12fb_b,G12fb_a)
+% control gain matrix
+K = [0 0 0; Kpw 0 Kdw]
+% Check characteristics
+[Vw,lambdaw] = eig(A(2:end,2:end)-B(2:end,:)*K)
 
 % control gain matrix
-K = [0 Kpu 0; 0 0 0]
-% Check eigenvalues
-lambda = eig(A(2:end,2:end)-B(2:end,:)*K)
-
+K = [0 Kpu 0; Kpw 0 Kdw]
+% Check characteristics
+[V,lambda] = eig(A(2:end,2:end)-B(2:end,:)*K)
+figure, step(G12fbsys,25)
+figure, step(G21fbsys)
+% [p,z] = pzmap(G12fbsys)
 %% Pole placement
-nominal_data_setting = [0.5; 2]; % Set Z, u.
+clear;
+
+nominal_data_setting = [0.2; 5]; % Set Z, u.
 nominal_x0 = [0; nominal_data_setting(1); nominal_data_setting(2); 0]; % nominal initial state: X, Z, u, w
 [A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting);
 
@@ -377,6 +409,8 @@ K = place(A(2:end,2:end),B(2:end,:),p)
 [eigVector,lambda] = eig(A(2:end,2:end)-B(2:end,:)*K)
 
 %% LQR
+clear;
+
 nominal_data_setting = [0.5; 2]; % Set Z, u.
 nominal_x0 = [0; nominal_data_setting(1); nominal_data_setting(2); 0]; % nominal initial state: X, Z, u, w
 [A,B,nominal_x,nominal_input] = getLinearSys(nominal_x0,nominal_data_setting);
